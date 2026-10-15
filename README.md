@@ -159,4 +159,4 @@ $env:P2PDL_E2E="1"; go test ./internal/e2e -v -timeout 90m
 
 ## 许可
 
-MIT，见 [LICENSE](LICENSE)。第三方组件许可见 [docs/third-party.md](docs/third-party.md)。
+Apache-2.0，见 [LICENSE](LICENSE)。第三方组件许可见 [docs/third-party.md](docs/third-party.md)。
