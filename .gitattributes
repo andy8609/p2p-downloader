@@ -1,0 +1,23 @@
+# 默认按内容自动判断文本文件，统一以 LF 存入仓库
+* text=auto
+
+# Windows 脚本与批处理保持 CRLF，避免 PowerShell 执行异常
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Go / 前端源码强制 LF
+*.go   text eol=lf
+*.js   text eol=lf
+*.css  text eol=lf
+*.html text eol=lf
+
+# 二进制资源不做转换
+*.ico  binary
+*.png  binary
+*.jpg  binary
+*.zip  binary
+*.exe  binary
+
+# 让 git 在 diff 中把 go.sum 视为生成文件
+go.sum -diff linguist-generated

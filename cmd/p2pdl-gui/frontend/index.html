@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>p2pdl 下载器</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">▼</span>
+    <span>p2pdl 下载器</span>
+  </div>
+  <div class="engine-status" id="engineStatus">
+    <span class="dot" id="engineDot"></span>
+    <span id="engineText">正在连接引擎…</span>
+    <button class="btn btn-ghost" id="btnRestart" title="重启引擎进程">重启引擎</button>
+    <button class="btn btn-ghost" id="btnSettings" title="打开设置">设置</button>
+  </div>
+</header>
+
+<section class="addbar">
+  <input id="sourceInput" type="text" placeholder="粘贴 HTTP/HTTPS 链接、磁力链（magnet:?xt=...）或本地 .torrent 路径" autocomplete="off">
+  <input id="hashInput" type="text" class="hash-input" placeholder="可选：期望 SHA-256（下载后自动校验）" autocomplete="off">
+  <label class="check"><input type="checkbox" id="pausedCheck"> 暂停创建</label>
+  <button class="btn btn-ghost" id="btnClipboard" title="从剪贴板识别链接">读剪贴板</button>
+  <button class="btn btn-primary" id="btnAdd">开始下载</button>
+</section>
+
+<section class="summary" id="summary">
+  <div class="stat"><span class="label">任务</span><span class="value" id="statTotal">0</span></div>
+  <div class="stat"><span class="label">运行中</span><span class="value" id="statRunning">0</span></div>
+  <div class="stat"><span class="label">已完成</span><span class="value" id="statCompleted">0</span></div>
+  <div class="stat"><span class="label">失败</span><span class="value" id="statFailed">0</span></div>
+  <div class="stat wide">
+    <span class="label">全局限速</span>
+    <select id="rateSelect">
+      <option value="0">不限速</option>
+      <option value="524288">512 KB/s</option>
+      <option value="1048576">1 MB/s</option>
+      <option value="2097152">2 MB/s</option>
+      <option value="5242880">5 MB/s</option>
+      <option value="10485760">10 MB/s</option>
+      <option value="52428800">50 MB/s</option>
+    </select>
+  </div>
+  <div class="stat wide">
+    <button class="btn btn-ghost" id="btnOpenDir">打开下载目录</button>
+  </div>
+</section>
+
+<main>
+  <div class="list-header">
+    <span>名称</span><span>进度</span><span>速度 / 剩余</span><span>大小</span><span>状态</span><span>操作</span>
+  </div>
+  <div id="taskList" class="task-list"></div>
+  <div id="emptyState" class="empty">
+    还没有任务。<br>
+    在上方粘贴链接，或把 <b>.torrent 文件拖到本窗口</b> 即可开始。
+  </div>
+</main>
+
+<section class="logs">
+  <details>
+    <summary>运行日志</summary>
+    <pre id="logView"></pre>
+  </details>
+</section>
+
+<!-- 拖拽提示层 -->
+<div id="dropHint" class="drop-hint">
+  <div class="drop-hint-inner">
+    <div class="drop-icon">↓</div>
+    <div>松开即可添加</div>
+    <div class="drop-sub">支持 .torrent 文件、链接文本</div>
+  </div>
+</div>
+
+<!-- 设置面板 -->
+<div id="settingsMask" class="mask">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>设置</h2>
+      <button class="btn btn-ghost" id="btnCloseSettings">关闭</button>
+    </div>
+    <div class="panel-body">
+      <div class="field-group">
+        <h3>启动期设置<span class="hint">修改后需重启引擎才生效</span></h3>
+        <label class="field">
+          <span class="field-label">下载目录</span>
+          <span class="field-input">
+            <input type="text" id="setDataDir">
+            <button class="btn btn-ghost" id="btnPickDir">浏览…</button>
+          </span>
+        </label>
+        <label class="field">
+          <span class="field-label">单任务并发连接数</span>
+          <span class="field-input"><input type="number" id="setConcurrency" min="1" max="64"></span>
+        </label>
+        <label class="field">
+          <span class="field-label">同时运行任务数</span>
+          <span class="field-input"><input type="number" id="setMaxTasks" min="1" max="32"></span>
+        </label>
+        <label class="field">
+          <span class="field-label">分块大小 (KB)</span>
+          <span class="field-input"><input type="number" id="setChunkKB" min="64" max="65536"></span>
+        </label>
+        <label class="field">
+          <span class="field-label">控制面端口<span class="hint">0 = 自动分配</span></span>
+          <span class="field-input"><input type="number" id="setPort" min="0" max="65535"></span>
+        </label>
+      </div>
+
+      <div class="field-group">
+        <h3>运行期设置<span class="hint">保存后立即生效</span></h3>
+        <label class="field">
+          <span class="field-label">全局限速 (KB/s)<span class="hint">0 = 不限速</span></span>
+          <span class="field-input"><input type="number" id="setRateKB" min="0"></span>
+        </label>
+      </div>
+
+      <div class="field-group">
+        <h3>行为</h3>
+        <label class="check"><input type="checkbox" id="setAutoResume"> 启动时自动继续未完成的任务</label>
+        <label class="check"><input type="checkbox" id="setManifest"> 校验通过后生成分块清单（便于定点修复）</label>
+        <label class="check"><input type="checkbox" id="setNotify"> 任务完成/失败时提醒</label>
+        <label class="check"><input type="checkbox" id="setClipboard"> 自动识别剪贴板中的链接</label>
+      </div>
+
+      <div class="field-group">
+        <h3>配置文件</h3>
+        <p class="path-text" id="settingsPath"></p>
+      </div>
+    </div>
+    <div class="panel-foot">
+      <span class="save-hint" id="saveHint"></span>
+      <button class="btn btn-primary" id="btnSaveSettings">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
